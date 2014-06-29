@@ -42,7 +42,6 @@ public class MyWearActivity extends Activity implements
     private static final String TAG = "MyWearActivity";
     private TextView mTextView;
     private ImageView imageView;
-    private Button button;
     private GoogleApiClient mGoogleApiClient;
 
 
@@ -69,15 +68,6 @@ public class MyWearActivity extends Activity implements
                     {
                         mTextView = (TextView) stub.findViewById(R.id.text);
                         imageView = (ImageView) stub.findViewById(R.id.map);
-                        button = (Button) stub.findViewById(R.id.button);
-                        button.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                Log.i(TAG, "sending message");
-//                        request();
-                                (new SendMessageAsyncTask()).execute();
-                            }
-                        });
                     }
                 });
 
@@ -97,6 +87,7 @@ public class MyWearActivity extends Activity implements
         if( mGoogleApiClient != null) {
             mGoogleApiClient.connect();
         }
+        (new SendMessageAsyncTask()).execute();
 //        mGoogleApiClient.connect();
     }
 
