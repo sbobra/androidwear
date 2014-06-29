@@ -3,6 +3,7 @@ package com.example.sbobra.wearapp;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.wearable.view.WatchViewStub;
 import android.util.Log;
@@ -20,17 +21,23 @@ import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.DataItemAsset;
+import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.Node;
+import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
 
 //WEAR
 
 public class MyWearActivity extends Activity implements
-        DataApi.DataListener, ConnectionCallbacks, OnConnectionFailedListener {
+        ConnectionCallbacks, OnConnectionFailedListener {
     private static final String TAG = "MyWearActivity";
     private TextView mTextView;
     private ImageView imageView;
@@ -61,8 +68,9 @@ public class MyWearActivity extends Activity implements
                 button.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        Log.i(TAG, "Requesting");
-                        request();
+                        Log.i(TAG, "sending message");
+//                        request();
+                        (new SendMessageAsyncTask()).execute();
                     }
                 });
             }
@@ -112,7 +120,7 @@ public class MyWearActivity extends Activity implements
         if (Log.isLoggable(TAG, Log.DEBUG)) {
             Log.d(TAG, "Connected to Google Api Service");
         }
-        Wearable.DataApi.addListener(mGoogleApiClient, this);
+//        Wearable.MessageApi.addListener(mGoogleApiClient, this);
     }
 
     @Override
@@ -129,35 +137,74 @@ public class MyWearActivity extends Activity implements
     @Override
     protected void onStop() {
         if (null != mGoogleApiClient && mGoogleApiClient.isConnected()) {
-            Wearable.DataApi.removeListener(mGoogleApiClient, MyWearActivity.this);
+//            Wearable.DataApi.removeListener(mGoogleApiClient, MyWearActivity.this);
             mGoogleApiClient.disconnect();
         }
         super.onStop();
     }
+//
+//    @Override
+//    public void onDataChanged(DataEventBuffer dataEvents) {
+//        Log.i(TAG, "onDataEventChanged");
+//        for (DataEvent event : dataEvents) {
+//            if (event.getType() == DataEvent.TYPE_DELETED) {
+//                Log.d(TAG, "DataItem deleted: " + event.getDataItem().getUri());
+//            } else if (event.getType() == DataEvent.TYPE_CHANGED &&
+//                    event.getDataItem().getUri().getPath().equals("/image")) {
+//                Log.d(TAG, "DataItem changed: " + event.getDataItem().getUri());
+//                DataItemAsset profileAsset = event.getDataItem().getAssets().get("mapImage");
+//                Bitmap bitmap = loadBitmapFromAsset(profileAsset);
+//                Log.i(TAG, "received bitmap");
+//                imageView.setImageBitmap(bitmap);
+//                if (bitmap == null) {
+//                    mTextView.setText("RECEIVED: null");
+//
+//                    Log.i(TAG, "bitmap is null");
+//                } else {
+//                    mTextView.setText("RECEIVED");
+//                }
+//                // Do something with the bitmap) {
+//            }
+//        }
+//    }
 
-    @Override
-    public void onDataChanged(DataEventBuffer dataEvents) {
-        Log.i(TAG, "onDataEventChanged");
-        for (DataEvent event : dataEvents) {
-            if (event.getType() == DataEvent.TYPE_DELETED) {
-                Log.d(TAG, "DataItem deleted: " + event.getDataItem().getUri());
-            } else if (event.getType() == DataEvent.TYPE_CHANGED &&
-                    event.getDataItem().getUri().getPath().equals("/image")) {
-                Log.d(TAG, "DataItem changed: " + event.getDataItem().getUri());
-                DataItemAsset profileAsset = event.getDataItem().getAssets().get("mapImage");
-                Bitmap bitmap = loadBitmapFromAsset(profileAsset);
-                Log.i(TAG, "received bitmap");
-                imageView.setImageBitmap(bitmap);
-                if (bitmap == null) {
-                    mTextView.setText("RECEIVED: null");
+    public class SendMessageAsyncTask extends AsyncTask<Void, Void, Void> {
 
-                    Log.i(TAG, "bitmap is null");
-                } else {
-                    mTextView.setText("RECEIVED");
+        @Override
+        protected Void doInBackground(Void... params) {
+            sendMessage();
+            return null;
+        }
+
+        private Collection<String> getNodes() {
+            HashSet<String> results= new HashSet<String>();
+            NodeApi.GetConnectedNodesResult nodes =
+                    Wearable.NodeApi.getConnectedNodes(mGoogleApiClient).await();
+            for (Node node : nodes.getNodes()) {
+                results.add(node.getId());
+            }
+            return results;
+        }
+
+        public void sendMessage() {
+            for (String node : getNodes()) {
+                MessageApi.SendMessageResult result = Wearable.MessageApi.sendMessage(
+                        mGoogleApiClient, node, "/download", null).await();
+                if (!result.getStatus().isSuccess()) {
+                    Log.e(TAG, "ERROR: failed to send Message: " + result.getStatus());
                 }
-                // Do something with the bitmap) {
             }
         }
-    }
 
+        @Override
+        protected void onPostExecute(Void result) {
+
+        }
+
+        @Override
+        protected void onPreExecute() {}
+
+        @Override
+        protected void onProgressUpdate(Void... values) {}
+    }
 }

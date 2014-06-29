@@ -1,7 +1,9 @@
 package com.example.sbobra.wearapp;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -10,17 +12,38 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.app.Service;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.IBinder;
+import android.util.Log;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.data.FreezableUtils;
+import com.google.android.gms.wearable.DataEvent;
+import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.MessageEvent;
+import com.google.android.gms.wearable.Wearable;
+import com.google.android.gms.wearable.WearableListenerService;
+
+import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.*;
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.data.FreezableUtils;
 import com.google.android.gms.wearable.Asset;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.DataItemAsset;
+import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
+import com.google.android.gms.wearable.WearableListenerService;
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 
@@ -29,10 +52,11 @@ import org.apache.http.Header;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 
-public class MyActivity extends ActionBarActivity implements
-        DataApi.DataListener, ConnectionCallbacks, OnConnectionFailedListener {
+public class MyActivity extends ActionBarActivity implements ConnectionCallbacks, OnConnectionFailedListener, MessageApi.MessageListener {
     private static final String IMAGE_URL = "http://api.wunderground.com/api/fcf4b9a6d9a0ad4e/radar/q/CA/San_Francisco.png?newmaps=1&timelabel=1&timelabel.y=10&height=200&width=200";
     private static final String TAG = "MyActivity";
     private GoogleApiClient mGoogleApiClient;
@@ -47,7 +71,18 @@ public class MyActivity extends ActionBarActivity implements
                 .addConnectionCallbacks(MyActivity.this)
                 .addOnConnectionFailedListener(MyActivity.this)
                 .build();
-        mGoogleApiClient.connect();
+//        mGoogleApiClient.connect();
+//        Intent i= new Intent(this, DataLayerListenerService.class);
+//        startService(i);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if( mGoogleApiClient != null) {
+            mGoogleApiClient.connect();
+        }
+//        mGoogleApiClient.connect();
     }
 
 
@@ -70,7 +105,7 @@ public class MyActivity extends ActionBarActivity implements
         return super.onOptionsItemSelected(item);
     }
 
-    private class DownloadGifAsyncTask extends AsyncTask<Void, Void, Bitmap> {
+    public class DownloadGifAsyncTask extends AsyncTask<Void, Void, Bitmap> {
 
         @Override
         protected Bitmap doInBackground(Void... params) {
@@ -121,8 +156,8 @@ public class MyActivity extends ActionBarActivity implements
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteStream);
         return Asset.createFromBytes(byteStream.toByteArray());
     }
-
-
+//
+//
     ////////
 
     @Override
@@ -130,7 +165,7 @@ public class MyActivity extends ActionBarActivity implements
         if (Log.isLoggable(TAG, Log.DEBUG)) {
             Log.d(TAG, "Connected to Google Api Service");
         }
-        Wearable.DataApi.addListener(mGoogleApiClient, this);
+        Wearable.MessageApi.addListener(mGoogleApiClient, this);
     }
 
     @Override
@@ -147,22 +182,80 @@ public class MyActivity extends ActionBarActivity implements
     @Override
     protected void onStop() {
         if (null != mGoogleApiClient && mGoogleApiClient.isConnected()) {
-            Wearable.DataApi.removeListener(mGoogleApiClient, MyActivity.this);
+            Wearable.MessageApi.removeListener(mGoogleApiClient, MyActivity.this);
             mGoogleApiClient.disconnect();
         }
         super.onStop();
     }
+//
+//    @Override
+//    public void onDataChanged(DataEventBuffer dataEvents) {
+//        Log.i(TAG, "onDataEventChanged");
+//        for (DataEvent event : dataEvents) {
+//            if (event.getType() == DataEvent.TYPE_DELETED) {
+//                Log.d(TAG, "DataItem deleted: " + event.getDataItem().getUri());
+//            } else if (event.getType() == DataEvent.TYPE_CHANGED && event.getDataItem().getUri().getPath().equals("/weatherrequest")) {
+//                Log.i(TAG, "weather request received");
+//                new DownloadGifAsyncTask().execute();
+//            }
+//        }
+//    }
+
 
     @Override
-    public void onDataChanged(DataEventBuffer dataEvents) {
-        Log.i(TAG, "onDataEventChanged");
-        for (DataEvent event : dataEvents) {
-            if (event.getType() == DataEvent.TYPE_DELETED) {
-                Log.d(TAG, "DataItem deleted: " + event.getDataItem().getUri());
-            } else if (event.getType() == DataEvent.TYPE_CHANGED && event.getDataItem().getUri().getPath().equals("/weatherrequest")) {
-                Log.i(TAG, "weather request received");
-                new DownloadGifAsyncTask().execute();
+    public void onMessageReceived(MessageEvent messageEvent) {
+        if (messageEvent.getPath().equals("/download")) {
+            Log.i(TAG, "message received");
+            (new DownloadGifAsyncTask()).execute();
+        }
+    }
+
+    public class DataLayerListenerService extends WearableListenerService {
+
+        private static final String TAG = "DataLayerSample";
+        private static final String START_ACTIVITY_PATH = "/start-activity";
+        private static final String DATA_ITEM_RECEIVED_PATH = "/data-item-received";
+
+        @Override
+        public void onMessageReceived(MessageEvent messageEvent) {
+            if (messageEvent.getPath().equals("/download")) {
+                (new DownloadGifAsyncTask()).execute();
+            }
+        }
+
+        @Override
+        public void onDataChanged(DataEventBuffer dataEvents) {
+            Log.i(TAG, "onDataChanged");
+            final ArrayList<DataEvent> events = FreezableUtils
+                    .freezeIterable(dataEvents);
+
+            GoogleApiClient googleApiClient = new GoogleApiClient.Builder(this)
+                    .addApi(Wearable.API)
+                    .build();
+
+            ConnectionResult connectionResult =
+                    googleApiClient.blockingConnect(30, TimeUnit.SECONDS);
+
+            if (!connectionResult.isSuccess()) {
+                Log.e(TAG, "Failed to connect to GoogleApiClient.");
+                return;
+            }
+
+            // Loop through the events and send a message
+            // to the node that created the data item.
+            for (DataEvent event : events) {
+                Uri uri = event.getDataItem().getUri();
+
+                // Get the node id from the host value of the URI
+                String nodeId = uri.getHost();
+                // Set the data of the message to be the bytes of the URI.
+                byte[] payload = uri.toString().getBytes();
+
+                // Send the RPC
+                Wearable.MessageApi.sendMessage(googleApiClient, nodeId,
+                        DATA_ITEM_RECEIVED_PATH, payload);
             }
         }
     }
+
 }
