@@ -228,79 +228,79 @@ public class MyActivity extends ActionBarActivity implements ConnectionCallbacks
             }
         }
 
-        @Override
-        public void onDataChanged(DataEventBuffer dataEvents) {
-            Log.i(TAG, "onDataChanged");
-            final ArrayList<DataEvent> events = FreezableUtils
-                    .freezeIterable(dataEvents);
-
-            GoogleApiClient googleApiClient = new GoogleApiClient.Builder(this)
-                    .addApi(Wearable.API)
-                    .build();
-
-            ConnectionResult connectionResult =
-                    googleApiClient.blockingConnect(30, TimeUnit.SECONDS);
-
-            if (!connectionResult.isSuccess()) {
-                Log.e(TAG, "Failed to connect to GoogleApiClient.");
-                return;
-            }
-
-            // Loop through the events and send a message
-            // to the node that created the data item.
-            for (DataEvent event : events) {
-                Uri uri = event.getDataItem().getUri();
-
-                // Get the node id from the host value of the URI
-                String nodeId = uri.getHost();
-                // Set the data of the message to be the bytes of the URI.
-                byte[] payload = uri.toString().getBytes();
-
-                // Send the RPC
-                Wearable.MessageApi.sendMessage(googleApiClient, nodeId,
-                        DATA_ITEM_RECEIVED_PATH, payload);
-            }
-        }
+//        @Override
+//        public void onDataChanged(DataEventBuffer dataEvents) {
+//            Log.i(TAG, "onDataChanged");
+//            final ArrayList<DataEvent> events = FreezableUtils
+//                    .freezeIterable(dataEvents);
+//
+//            GoogleApiClient googleApiClient = new GoogleApiClient.Builder(this)
+//                    .addApi(Wearable.API)
+//                    .build();
+//
+//            ConnectionResult connectionResult =
+//                    googleApiClient.blockingConnect(30, TimeUnit.SECONDS);
+//
+//            if (!connectionResult.isSuccess()) {
+//                Log.e(TAG, "Failed to connect to GoogleApiClient.");
+//                return;
+//            }
+//
+//            // Loop through the events and send a message
+//            // to the node that created the data item.
+//            for (DataEvent event : events) {
+//                Uri uri = event.getDataItem().getUri();
+//
+//                // Get the node id from the host value of the URI
+//                String nodeId = uri.getHost();
+//                // Set the data of the message to be the bytes of the URI.
+//                byte[] payload = uri.toString().getBytes();
+//
+//                // Send the RPC
+//                Wearable.MessageApi.sendMessage(googleApiClient, nodeId,
+//                        DATA_ITEM_RECEIVED_PATH, payload);
+//            }
+//        }
     }
 
-    public class SendMessageAsyncTask extends AsyncTask<Void, Void, Void> {
-
-        @Override
-        protected Void doInBackground(Void... params) {
-            sendMessage();
-            return null;
-        }
-
-        private Collection<String> getNodes() {
-            HashSet<String> results= new HashSet<String>();
-            NodeApi.GetConnectedNodesResult nodes =
-                    Wearable.NodeApi.getConnectedNodes(mGoogleApiClient).await();
-            for (Node node : nodes.getNodes()) {
-                results.add(node.getId());
-            }
-            return results;
-        }
-
-        public void sendMessage() {
-            for (String node : getNodes()) {
-                MessageApi.SendMessageResult result = Wearable.MessageApi.sendMessage(
-                        mGoogleApiClient, node, "/image", null).await();
-                if (!result.getStatus().isSuccess()) {
-                    Log.e(TAG, "ERROR: failed to send Message: " + result.getStatus());
-                }
-            }
-        }
-
-        @Override
-        protected void onPostExecute(Void result) {
-
-        }
-
-        @Override
-        protected void onPreExecute() {}
-
-        @Override
-        protected void onProgressUpdate(Void... values) {}
-    }
+//    public class SendMessageAsyncTask extends AsyncTask<Void, Void, Void> {
+//
+//        @Override
+//        protected Void doInBackground(Void... params) {
+//            sendMessage();
+//            return null;
+//        }
+//
+//        private Collection<String> getNodes() {
+//            HashSet<String> results= new HashSet<String>();
+//            NodeApi.GetConnectedNodesResult nodes =
+//                    Wearable.NodeApi.getConnectedNodes(mGoogleApiClient).await();
+//            for (Node node : nodes.getNodes()) {
+//                results.add(node.getId());
+//            }
+//            return results;
+//        }
+//
+//        public void sendMessage() {
+//            for (String node : getNodes()) {
+//                MessageApi.SendMessageResult result = Wearable.MessageApi.sendMessage(
+//                        mGoogleApiClient, node, "/image", null).await();
+//                if (!result.getStatus().isSuccess()) {
+//                    Log.e(TAG, "ERROR: failed to send Message: " + result.getStatus());
+//                }
+//            }
+//        }
+//
+//        @Override
+//        protected void onPostExecute(Void result) {
+//
+//        }
+//
+//        @Override
+//        protected void onPreExecute() {}
+//
+//        @Override
+//        protected void onProgressUpdate(Void... values) {}
+//    }
 
 }
