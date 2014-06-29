@@ -22,6 +22,7 @@ import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.DataItemAsset;
 import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.PutDataRequest;
@@ -37,7 +38,7 @@ import java.util.concurrent.TimeUnit;
 //WEAR
 
 public class MyWearActivity extends Activity implements
-        ConnectionCallbacks, OnConnectionFailedListener {
+        ConnectionCallbacks, OnConnectionFailedListener, MessageApi.MessageListener {
     private static final String TAG = "MyWearActivity";
     private TextView mTextView;
     private ImageView imageView;
@@ -61,18 +62,25 @@ public class MyWearActivity extends Activity implements
         final WatchViewStub stub = (WatchViewStub) findViewById(R.id.watch_view_stub);
         stub.setOnLayoutInflatedListener(new WatchViewStub.OnLayoutInflatedListener() {
             @Override
-            public void onLayoutInflated(WatchViewStub stub) {
-                mTextView = (TextView) stub.findViewById(R.id.text);
-                imageView = (ImageView) stub.findViewById(R.id.map);
-                button = (Button) stub.findViewById(R.id.button);
-                button.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        Log.i(TAG, "sending message");
+            public void onLayoutInflated(final WatchViewStub stub) {
+                runOnUiThread(new Runnable()
+                {
+                    public void run()
+                    {
+                        mTextView = (TextView) stub.findViewById(R.id.text);
+                        imageView = (ImageView) stub.findViewById(R.id.map);
+                        button = (Button) stub.findViewById(R.id.button);
+                        button.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                Log.i(TAG, "sending message");
 //                        request();
-                        (new SendMessageAsyncTask()).execute();
+                                (new SendMessageAsyncTask()).execute();
+                            }
+                        });
                     }
                 });
+
             }
         });
 
@@ -120,7 +128,7 @@ public class MyWearActivity extends Activity implements
         if (Log.isLoggable(TAG, Log.DEBUG)) {
             Log.d(TAG, "Connected to Google Api Service");
         }
-//        Wearable.MessageApi.addListener(mGoogleApiClient, this);
+        Wearable.MessageApi.addListener(mGoogleApiClient, this);
     }
 
     @Override
@@ -137,7 +145,7 @@ public class MyWearActivity extends Activity implements
     @Override
     protected void onStop() {
         if (null != mGoogleApiClient && mGoogleApiClient.isConnected()) {
-//            Wearable.DataApi.removeListener(mGoogleApiClient, MyWearActivity.this);
+            Wearable.MessageApi.removeListener(mGoogleApiClient, MyWearActivity.this);
             mGoogleApiClient.disconnect();
         }
         super.onStop();
@@ -206,5 +214,20 @@ public class MyWearActivity extends Activity implements
 
         @Override
         protected void onProgressUpdate(Void... values) {}
+    }
+
+    @Override
+    public void onMessageReceived(MessageEvent messageEvent) {
+        if (messageEvent.getPath().equals("/image")) {
+            Log.i(TAG, "message received");
+
+            runOnUiThread(new Runnable()
+            {
+                public void run()
+                {
+                    mTextView.setText("message received!");
+                }
+            });
+        }
     }
 }

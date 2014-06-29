@@ -25,10 +25,14 @@ import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.MessageEvent;
+import com.google.android.gms.wearable.Node;
+import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.Wearable;
 import com.google.android.gms.wearable.WearableListenerService;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
 
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -119,11 +123,12 @@ public class MyActivity extends ActionBarActivity implements ConnectionCallbacks
                 ImageView image = (ImageView) findViewById(R.id.map);
                 image.setImageBitmap(result);
 
-                Asset asset = createAssetFromBitmap(result);
-                PutDataRequest request = PutDataRequest.create("/image");
-                request.putAsset("mapImage", asset);
-                Wearable.DataApi.putDataItem(mGoogleApiClient, request);
+//                Asset asset = createAssetFromBitmap(result);
+//                PutDataRequest request = PutDataRequest.create("/image");
+//                request.putAsset("mapImage", asset);
+//                Wearable.DataApi.putDataItem(mGoogleApiClient, request);
                 Log.i(TAG, "send data item");
+                (new SendMessageAsyncTask()).execute();
 
             } else {
                 Log.i("MyActivity", "download failed.");
@@ -256,6 +261,46 @@ public class MyActivity extends ActionBarActivity implements ConnectionCallbacks
                         DATA_ITEM_RECEIVED_PATH, payload);
             }
         }
+    }
+
+    public class SendMessageAsyncTask extends AsyncTask<Void, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            sendMessage();
+            return null;
+        }
+
+        private Collection<String> getNodes() {
+            HashSet<String> results= new HashSet<String>();
+            NodeApi.GetConnectedNodesResult nodes =
+                    Wearable.NodeApi.getConnectedNodes(mGoogleApiClient).await();
+            for (Node node : nodes.getNodes()) {
+                results.add(node.getId());
+            }
+            return results;
+        }
+
+        public void sendMessage() {
+            for (String node : getNodes()) {
+                MessageApi.SendMessageResult result = Wearable.MessageApi.sendMessage(
+                        mGoogleApiClient, node, "/image", null).await();
+                if (!result.getStatus().isSuccess()) {
+                    Log.e(TAG, "ERROR: failed to send Message: " + result.getStatus());
+                }
+            }
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+
+        }
+
+        @Override
+        protected void onPreExecute() {}
+
+        @Override
+        protected void onProgressUpdate(Void... values) {}
     }
 
 }
