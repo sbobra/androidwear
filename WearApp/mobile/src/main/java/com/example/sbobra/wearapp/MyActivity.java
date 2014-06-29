@@ -123,12 +123,12 @@ public class MyActivity extends ActionBarActivity implements ConnectionCallbacks
                 ImageView image = (ImageView) findViewById(R.id.map);
                 image.setImageBitmap(result);
 
-//                Asset asset = createAssetFromBitmap(result);
-//                PutDataRequest request = PutDataRequest.create("/image");
-//                request.putAsset("mapImage", asset);
-//                Wearable.DataApi.putDataItem(mGoogleApiClient, request);
+                Asset asset = createAssetFromBitmap(result);
+                PutDataRequest request = PutDataRequest.create("/image");
+                request.putAsset("mapImage", asset);
+                Wearable.DataApi.putDataItem(mGoogleApiClient, request);
                 Log.i(TAG, "send data item");
-                (new SendMessageAsyncTask()).execute();
+//                (new SendMessageAsyncTask()).execute();
 
             } else {
                 Log.i("MyActivity", "download failed.");

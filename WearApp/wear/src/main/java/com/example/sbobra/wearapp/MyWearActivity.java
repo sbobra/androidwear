@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
 //WEAR
 
 public class MyWearActivity extends Activity implements
-        ConnectionCallbacks, OnConnectionFailedListener, MessageApi.MessageListener {
+        ConnectionCallbacks, OnConnectionFailedListener, DataApi.DataListener {
     private static final String TAG = "MyWearActivity";
     private TextView mTextView;
     private ImageView imageView;
@@ -128,7 +128,7 @@ public class MyWearActivity extends Activity implements
         if (Log.isLoggable(TAG, Log.DEBUG)) {
             Log.d(TAG, "Connected to Google Api Service");
         }
-        Wearable.MessageApi.addListener(mGoogleApiClient, this);
+        Wearable.DataApi.addListener(mGoogleApiClient, this);
     }
 
     @Override
@@ -145,36 +145,33 @@ public class MyWearActivity extends Activity implements
     @Override
     protected void onStop() {
         if (null != mGoogleApiClient && mGoogleApiClient.isConnected()) {
-            Wearable.MessageApi.removeListener(mGoogleApiClient, MyWearActivity.this);
+            Wearable.DataApi.removeListener(mGoogleApiClient, MyWearActivity.this);
             mGoogleApiClient.disconnect();
         }
         super.onStop();
     }
 //
-//    @Override
-//    public void onDataChanged(DataEventBuffer dataEvents) {
-//        Log.i(TAG, "onDataEventChanged");
-//        for (DataEvent event : dataEvents) {
-//            if (event.getType() == DataEvent.TYPE_DELETED) {
-//                Log.d(TAG, "DataItem deleted: " + event.getDataItem().getUri());
-//            } else if (event.getType() == DataEvent.TYPE_CHANGED &&
-//                    event.getDataItem().getUri().getPath().equals("/image")) {
-//                Log.d(TAG, "DataItem changed: " + event.getDataItem().getUri());
-//                DataItemAsset profileAsset = event.getDataItem().getAssets().get("mapImage");
-//                Bitmap bitmap = loadBitmapFromAsset(profileAsset);
-//                Log.i(TAG, "received bitmap");
-//                imageView.setImageBitmap(bitmap);
-//                if (bitmap == null) {
-//                    mTextView.setText("RECEIVED: null");
-//
-//                    Log.i(TAG, "bitmap is null");
-//                } else {
-//                    mTextView.setText("RECEIVED");
-//                }
-//                // Do something with the bitmap) {
-//            }
-//        }
-//    }
+    @Override
+    public void onDataChanged(DataEventBuffer dataEvents) {
+        Log.i(TAG, "onDataEventChanged");
+        for (DataEvent event : dataEvents) {
+            if (event.getType() == DataEvent.TYPE_DELETED) {
+                Log.d(TAG, "DataItem deleted: " + event.getDataItem().getUri());
+            } else if (event.getType() == DataEvent.TYPE_CHANGED &&
+                    event.getDataItem().getUri().getPath().equals("/image")) {
+                Log.d(TAG, "DataItem changed: " + event.getDataItem().getUri());
+                DataItemAsset profileAsset = event.getDataItem().getAssets().get("mapImage");
+                final Bitmap bitmap = loadBitmapFromAsset(profileAsset);
+                Log.i(TAG, "received bitmap");
+                runOnUiThread(new Runnable() {
+                    public void run() {
+                        imageView.setImageBitmap(bitmap);
+                    }
+                });
+                // Do something with the bitmap) {
+            }
+        }
+    }
 
     public class SendMessageAsyncTask extends AsyncTask<Void, Void, Void> {
 
@@ -216,18 +213,18 @@ public class MyWearActivity extends Activity implements
         protected void onProgressUpdate(Void... values) {}
     }
 
-    @Override
-    public void onMessageReceived(MessageEvent messageEvent) {
-        if (messageEvent.getPath().equals("/image")) {
-            Log.i(TAG, "message received");
-
-            runOnUiThread(new Runnable()
-            {
-                public void run()
-                {
-                    mTextView.setText("message received!");
-                }
-            });
-        }
-    }
+//    @Override
+//    public void onMessageReceived(MessageEvent messageEvent) {
+//        if (messageEvent.getPath().equals("/image")) {
+//            Log.i(TAG, "message received");
+//
+//            runOnUiThread(new Runnable()
+//            {
+//                public void run()
+//                {
+//                    mTextView.setText("message received!");
+//                }
+//            });
+//        }
+//    }
 }
