@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/list"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:oneshot="false">
+
+    <item
+        android:id="@+id/i1"
+        android:duration="100" />
+
+    <item
+        android:id="@+id/i2"
+        android:duration="100" />
+
+    <item
+        android:id="@+id/i3"
+        android:duration="100" />
+
+    <item
+        android:id="@+id/i4"
+        android:duration="100" />
+
+    <item
+        android:id="@+id/i5"
+        android:duration="100" />
+</animation-list>

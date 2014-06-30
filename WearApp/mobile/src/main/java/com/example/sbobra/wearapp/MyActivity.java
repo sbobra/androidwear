@@ -3,6 +3,8 @@ package com.example.sbobra.wearapp;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.AnimationDrawable;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v7.app.ActionBarActivity;
@@ -64,6 +66,8 @@ public class MyActivity extends ActionBarActivity implements ConnectionCallbacks
     private static final String IMAGE_URL = "http://api.wunderground.com/api/fcf4b9a6d9a0ad4e/radar/q/CA/San_Francisco.png?newmaps=1&timelabel=1&timelabel.y=10&height=200&width=200";
     private static final String TAG = "MyActivity";
     private GoogleApiClient mGoogleApiClient;
+    private static int imgCount = 0;
+    Bitmap[] bitmaps = new Bitmap[6];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -113,22 +117,48 @@ public class MyActivity extends ActionBarActivity implements ConnectionCallbacks
 
         @Override
         protected Bitmap doInBackground(Void... params) {
-            return downloadImage(IMAGE_URL);
+            return downloadImage(IMAGE_URL + "&frame=" + imgCount);
         }
 
         @Override
         protected void onPostExecute(Bitmap result) {
             if (result != null) {
-                Log.i("MyActivity", "download successful! " + (result.getByteCount() / 1024));
-                ImageView image = (ImageView) findViewById(R.id.map);
-                image.setImageBitmap(result);
+                if (imgCount >= 6) {
+                    Log.i("MyActivity", "download successful! " + (result.getByteCount() / 1024));
+                    final AnimationDrawable animation = new AnimationDrawable();
+                    animation.addFrame(new BitmapDrawable(getResources(), bitmaps[0]), 100);
+                    animation.addFrame(new BitmapDrawable(getResources(), bitmaps[1]), 100);
+                    animation.addFrame(new BitmapDrawable(getResources(), bitmaps[2]), 100);
+                    animation.addFrame(new BitmapDrawable(getResources(), bitmaps[3]), 100);
+                    animation.addFrame(new BitmapDrawable(getResources(), bitmaps[4]), 100);
+                    animation.addFrame(new BitmapDrawable(getResources(), bitmaps[5]), 100);
+                    animation.setOneShot(false);
 
-                Asset asset = createAssetFromBitmap(result);
-                PutDataRequest request = PutDataRequest.create("/image");
-                request.putAsset("mapImage", asset);
-                Wearable.DataApi.putDataItem(mGoogleApiClient, request);
-                Log.i(TAG, "send data item");
+                    ImageView image = (ImageView) findViewById(R.id.map);
+
+//                    image.setImageBitmap(result);
+                    image.setImageDrawable(animation);
+                    image.post(new Runnable() {
+                            public void run() {
+                                animation.start();
+                            }
+                    });
+
+//                    ImageView imageAnim =  (ImageView) findViewById(R.id.img);
+//                    imageAnim.setBackgroundDrawable(animation);
+
+                    // run the start() method later on the UI thread
+
+                    Asset asset = createAssetFromBitmap(result);
+                    PutDataRequest request = PutDataRequest.create("/image");
+                    request.putAsset("mapImage", asset);
+                    Wearable.DataApi.putDataItem(mGoogleApiClient, request);
 //                (new SendMessageAsyncTask()).execute();
+                } else {
+                    bitmaps[imgCount] = result;
+                    imgCount++;
+                    (new DownloadGifAsyncTask()).execute();
+                }
 
             } else {
                 Log.i("MyActivity", "download failed.");
@@ -211,7 +241,9 @@ public class MyActivity extends ActionBarActivity implements ConnectionCallbacks
     public void onMessageReceived(MessageEvent messageEvent) {
         if (messageEvent.getPath().equals("/download")) {
             Log.i(TAG, "message received");
-            (new DownloadGifAsyncTask()).execute();
+//            for (int i = 0; i < 5; i++) {
+                (new DownloadGifAsyncTask()).execute();
+//            }
         }
     }
 
